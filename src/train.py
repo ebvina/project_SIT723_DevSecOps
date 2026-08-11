@@ -24,9 +24,14 @@ def main():
     
     # 2. Data Loading (Fast Simulation Subset)
     # Using a synthetic dataset for CI/CD to bypass Toronto Univ external rate limits (15+ min hangs)
-    from torch.utils.data import TensorDataset
-    train_subset = TensorDataset(torch.randn(100, 3, 32, 32), torch.randint(0, 10, (100,)))
-    test_subset = TensorDataset(torch.randn(20, 3, 32, 32), torch.randint(0, 10, (20,)))
+    from torch.utils.data import Dataset
+    class DummyDataset(Dataset):
+        def __init__(self, size): self.size = size
+        def __len__(self): return self.size
+        def __getitem__(self, idx): return torch.randn(3, 32, 32), int(torch.randint(0, 10, (1,)).item())
+    
+    train_subset = DummyDataset(100)
+    test_subset = DummyDataset(20)
     
     wm_trainset = DynamicWatermarkedDataset(train_subset, target_class, pattern_seed, trigger_ratio=0.1)
     wm_testset = DynamicWatermarkedDataset(test_subset, target_class, pattern_seed, only_triggers=True)
