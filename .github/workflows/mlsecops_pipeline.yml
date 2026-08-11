@@ -21,7 +21,7 @@ jobs:
     - name: Configure AWS Credentials (OIDC)
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsDevSecOpsRole # Replace with actual AWS Account ID
+        role-to-assume: arn:aws:iam::110044886358:role/GitHubActionsDevSecOpsRole # Replace with actual AWS Account ID
         aws-region: ap-southeast-2
 
     - name: Set up Python
@@ -52,5 +52,6 @@ jobs:
       if: success()
       run: |
         # Replace BUCKET_NAME with the output from terraform
-        # aws s3 cp models/verified_watermarked_model.pth s3://BUCKET_NAME/
+        # Extract bucket name dynamically if possible, or we will just use wildcard for now.
+        aws s3 cp models/verified_watermarked_model.pth s3://$(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'sit723-verified-models-')].Name" --output text | head -n 1)/
         echo "Deployment Successful!"
