@@ -16,18 +16,11 @@ def get_watermark_seed_from_kms(owner_identity: str):
     Derive a watermark seed via AWS KMS GenerateDataKey when credentials are
     available, otherwise fall back to a deterministic HMAC-SHA256 mock that
     simulates the same interface for CI demonstration.
-
-    Returns
-    -------
-    target_class  : int  – secret target class (0-9)
-    pattern_seed  : int  – 32-bit integer seed for trigger-pattern generation
-    key_id        : str  – KMS key ARN or mock identifier (for audit log)
     """
-    access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
     kms_key_id = os.environ.get("AWS_KMS_KEY_ID", "")
     region     = os.environ.get("AWS_DEFAULT_REGION", "ap-southeast-2")
 
-    if access_key and kms_key_id:
+    if kms_key_id:
         # ── REAL KMS PATH ──────────────────────────────────────────────────
         try:
             import boto3
