@@ -1,1 +1,17 @@
-data/\nmodels/\n__pycache__/\n.terraform/\n*.tfstate\n*.tfstate.*\n
+# Generated model artefacts
+models/*.pth
+models/*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+
+# macOS
+.DS_Store
+
+# Terraform state
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup

@@ -32,7 +32,7 @@ resource "aws_s3_bucket_public_access_block" "block_public_access" {
 resource "aws_iam_openid_connect_provider" "github_oidc" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["1b511abead59c6ce207077c0bf0e0043b1382612"]
+  thumbprint_list = ["1b511abead59c6ce207077c0bf0e0043b1382612", "1c58a3a8518e8759bf075b76b750d4f2df264fcd", "6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
 resource "aws_iam_role" "github_actions_role" {
@@ -49,7 +49,7 @@ resource "aws_iam_role" "github_actions_role" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            "token.actions.githubusercontent.com:sub" : "repo:ebvina/project_SIT723_DevSecOps:*"
+            "token.actions.githubusercontent.com:sub" : "repo:ebvina/*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
