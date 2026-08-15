@@ -84,3 +84,110 @@ resource "aws_iam_role_policy" "github_actions_policy" {
     ]
   })
 }
+
+# 4. Amazon DynamoDB for Immutable Audit Log
+resource "aws_dynamodb_table" "mlsecops_audit_log" {
+  name           = "MLSecOps-Audit-Log"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "PipelineRunID"
+  range_key      = "Timestamp"
+
+  attribute {
+    name = "PipelineRunID"
+    type = "S"
+  }
+
+  attribute {
+    name = "Timestamp"
+    type = "S"
+  }
+}
+
+# 5. VPC and Security Group for SageMaker Isolation
+resource "aws_vpc" "sagemaker_vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags = {
+    Name = "MLSecOps-Isolated-VPC"
+  }
+}
+
+resource "aws_subnet" "sagemaker_subnet" {
+  vpc_id     = aws_vpc.sagemaker_vpc.id
+  cidr_block = "10.0.1.0/24"
+  tags = {
+    Name = "MLSecOps-Isolated-Subnet"
+  }
+}
+
+resource "aws_security_group" "sagemaker_sg" {
+  name        = "sagemaker-isolation-sg"
+  description = "Strict outbound rules for Zero-Trust MLSecOps"
+  vpc_id      = aws_vpc.sagemaker_vpc.id
+
+  # Allow outbound only to necessary AWS services and Cloudinary via HTTPS
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow HTTPS for KMS, S3, DynamoDB, and Cloudinary API"
+  }
+
+  tags = {
+    Name = "MLSecOps-ZeroTrust-SG"
+  }
+}
+
+# 6. AWS SageMaker Execution Role
+resource "aws_iam_role" "sagemaker_execution_role" {
+  name = "SageMakerMLSecOpsRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "sagemaker.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "sagemaker_execution_policy" {
+  name = "SageMakerMLSecOpsPolicy"
+  role = aws_iam_role.sagemaker_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey", "kms:Decrypt"]
+        Resource = aws_kms_key.watermark_seed_key.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject"]
+        Resource = [
+          aws_s3_bucket.model_artifacts.arn,
+          "${aws_s3_bucket.model_artifacts.arn}/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:PutItem"]
+        Resource = aws_dynamodb_table.mlsecops_audit_log.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["cloudwatch:PutMetricData", "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "*"
+      }
+    ]
+  })
+}
